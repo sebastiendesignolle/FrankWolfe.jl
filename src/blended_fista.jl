@@ -531,7 +531,7 @@ function projection_simplex_sort!(v::Vector{T}, x::Vector{T}, u::Vector{T}, cssv
     return v
 end
 
-function fista!(active_set::AbstractActiveSet, flatp::Vector{T}; maxiter=10^3, printstep=10, accelerated=true, verbose=true) where {T <: AbstractFloat} where {N}
+function fista!(active_set::AbstractActiveSet, flatp::Vector{T}; maxiter=10^3, printstep=10, accelerated=true, verbose=true) where {T <: AbstractFloat}
     n = length(active_set.atoms[1])
     K = length(active_set)
     Vt = zeros(eltype(active_set.weights), K, n)
