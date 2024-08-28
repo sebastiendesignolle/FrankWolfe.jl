@@ -211,6 +211,9 @@ function blended_pairwise_conditional_gradient_fista(
         # performs fista by assuming a distance function
         if mod(t, fista_interval) == 0
             fista!(active_set, flatp; maxiter=fista_maxiter, printstep=fista_printstep, accelerated=fista_accelerated, verbose=fista_verbose)
+            if active_set isa ActiveSetQuadratic
+                active_set.modified .= true
+            end
         end
 
         # compute current iterate from active set
