@@ -276,5 +276,5 @@ struct SymmetricLMO{LMO<:LinearMinimizationOracle,TR,TI} <: LinearMinimizationOr
 end
 
 function compute_extreme_point(sym::SymmetricLMO, direction; kwargs...)
-    return sym.reduce(compute_extreme_point(sym.lmo, sym.inflate(direction, sym.lmo)), sym.lmo)
+    return sym.reduce(compute_extreme_point(sym.lmo, sym.inflate(direction, sym.lmo); kwargs...), sym.lmo)
 end
