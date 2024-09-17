@@ -547,7 +547,7 @@ function fista!(active_set::AbstractActiveSet, flatp::Vector{T}; maxiter=10^3, p
     stepsize = inv(L)
     if verbose && printstep > 0
         println("FISTA with ", length(λ), " atoms")
-        @printf("%9i %.95e\n", 0, dot(λ, VtV, λ) / 2 - dot(flatp, Vt', λ) + dot(flatp, flatp) / 2)
+        @printf("%9i %.75e\n", 0, dot(λ, VtV, λ) / 2 - dot(flatp, Vt', λ) + dot(flatp, flatp) / 2)
     end
     γ = copy(λ)
     λ_prev = copy(λ)
@@ -576,7 +576,7 @@ function fista!(active_set::AbstractActiveSet, flatp::Vector{T}; maxiter=10^3, p
         end
         projection_simplex_sort!(λ, gstep, u, cssv)
         if verbose && printstep > 0 && mod(t, maxiter ÷ printstep) == 0
-            @printf("%9i %.95e\n", t, dot(λ, VtV, λ) / 2 - dot(flatp, Vt', λ) + dot(flatp, flatp) / 2)
+            @printf("%9i %.75e\n", t, dot(λ, VtV, λ) / 2 - dot(flatp, Vt', λ) + dot(flatp, flatp) / 2)
         end
     end
     return active_set
