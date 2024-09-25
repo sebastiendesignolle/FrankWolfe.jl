@@ -114,7 +114,7 @@ function blended_pairwise_conditional_gradient_fista(
     headers = ("Type", "Iteration", "Primal", "Dual", "Dual Gap", "Time", "It/sec", "#ActiveSet")
     function format_state(state, active_set, args...)
         rep = (
-            st[Symbol(state.tt)],
+            steptype_string[Symbol(state.step_type)],
             string(state.t),
             Float64(state.primal),
             Float64(state.primal - state.dual_gap),
@@ -138,7 +138,7 @@ function blended_pairwise_conditional_gradient_fista(
     compute_active_set_iterate!(active_set)
     x = get_active_set_iterate(active_set)
     primal = convert(eltype(x), Inf)
-    tt = regular
+    step_type = ST_REGULAR
     time_start = time_ns()
 
     d = similar(x)
@@ -255,7 +255,7 @@ function blended_pairwise_conditional_gradient_fista(
                 memory_mode,
             )
             gamma = min(gamma_max, gamma)
-            tt = gamma ≈ gamma_max ? drop : pairwise
+            step_type = gamma ≈ gamma_max ? ST_DROP : ST_PAIRWISE
             if callback !== nothing
                 state = CallbackState(
                     t,
@@ -271,7 +271,7 @@ function blended_pairwise_conditional_gradient_fista(
                     grad!,
                     lmo,
                     gradient,
-                    tt,
+                    step_type,
                 )
                 if callback(state, active_set, a) === false
                     break
@@ -302,18 +302,20 @@ function blended_pairwise_conditional_gradient_fista(
                             @debug("Found acceptable lazy vertex in storage")
                         end
                         v = new_forward_vertex
-                        tt = lazylazy
+                        step_type = ST_LAZYSTORAGE
                     else
                         v = compute_extreme_point(lmo, gradient)
-                        tt = regular
+                        step_type = ST_REGULAR
                     end
                 else
                     # for t == 1, v is already computed before first iteration
                     if t > 1
                         v = compute_extreme_point(lmo, gradient)
                     end
-                    tt = regular
+                    step_type = ST_REGULAR
                 end
+            else # Set the correct flag step.
+                step_type = ST_REGULAR
             end
             vertex_taken = v
             dual_gap = fast_dot(gradient, x) - fast_dot(gradient, v)
@@ -366,7 +368,7 @@ function blended_pairwise_conditional_gradient_fista(
                         grad!,
                         lmo,
                         gradient,
-                        tt,
+                        step_type,
                     )
                     if callback(state, active_set) === false
                         break
@@ -391,10 +393,10 @@ function blended_pairwise_conditional_gradient_fista(
                 # set to computed dual_gap for consistency between the lazy and non-lazy run.
                 # that is ok as we scale with the K = 2.0 default anyways
                 # we only update the dual gap if the step was regular (not lazy from discarded set)
-                if tt != lazylazy
+                if step_type != ST_LAZYSTORAGE
                     phi = dual_gap
                     @debug begin
-                        @assert tt == regular
+                        @assert step_type == ST_REGULAR
                         v2 = compute_extreme_point(lmo, gradient)
                         g = dot(gradient, x - v2)
                         if abs(g - dual_gap) > 100 * sqrt(eps())
@@ -404,7 +406,7 @@ function blended_pairwise_conditional_gradient_fista(
                 else
                     @info "useless step"
                 end
-                tt = dualstep
+                step_type = ST_DUALSTEP
                 if callback !== nothing
                     state = CallbackState(
                         t,
@@ -420,7 +422,7 @@ function blended_pairwise_conditional_gradient_fista(
                         grad!,
                         lmo,
                         gradient,
-                        tt,
+                        step_type,
                     )
                     if callback(state, active_set) === false
                         break
@@ -433,7 +435,7 @@ function blended_pairwise_conditional_gradient_fista(
             x = compute_active_set_iterate!(active_set)
         end
         if (
-            ((mod(t, print_iter) == 0 || tt == dualstep) == 0 && verbose) ||
+            ((mod(t, print_iter) == 0 || step_type == ST_DUALSTEP) == 0 && verbose) ||
             callback !== nothing ||
             !(line_search isa Agnostic || line_search isa Nonconvex || line_search isa FixedStep)
         )
@@ -452,8 +454,9 @@ function blended_pairwise_conditional_gradient_fista(
         grad!(gradient, x)
         v = compute_extreme_point(lmo, gradient)
         primal = f(x)
-        phi = fast_dot(x, gradient) - fast_dot(v, gradient)
-        tt = last
+        phi_new = fast_dot(x, gradient) - fast_dot(v, gradient)
+        phi = phi_new < phi ? phi_new : phi
+        step_type = ST_LAST
         tot_time = (time_ns() - time_start) / 1e9
         if callback !== nothing
             state = CallbackState(
@@ -470,7 +473,7 @@ function blended_pairwise_conditional_gradient_fista(
                 grad!,
                 lmo,
                 gradient,
-                tt,
+                step_type,
             )
             callback(state, active_set)
         end
@@ -486,14 +489,14 @@ function blended_pairwise_conditional_gradient_fista(
         primal = f(x)
         dual_gap = fast_dot(x, gradient) - fast_dot(v, gradient)
     end
-    tt = pp
+    step_type = ST_POSTPROCESS
     tot_time = (time_ns() - time_start) / 1e9
     if callback !== nothing
         state = CallbackState(
             t,
             primal,
             primal - dual_gap,
-            phi,
+            dual_gap,
             tot_time,
             x,
             v,
@@ -503,7 +506,7 @@ function blended_pairwise_conditional_gradient_fista(
             grad!,
             lmo,
             gradient,
-            tt,
+            step_type,
         )
         callback(state, active_set)
     end
