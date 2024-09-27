@@ -1,0 +1,12 @@
+#/bin/bash
+vim\
+  src/FrankWolfe.jl\
+  src/abstract_oracles.jl\
+  src/active_set.jl\
+  src/active_set_quadratic.jl\
+  src/types.jl\
+  src/utils.jl\
+  src/afw.jl\
+  src/blended_fista.jl\
+  src/fw_algorithms.jl\
+  src/pairwise.jl\
