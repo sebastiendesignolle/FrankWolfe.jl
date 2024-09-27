@@ -172,7 +172,7 @@ function blended_pairwise_conditional_gradient_fista(
     flatp = p[:]
 
     grad!(gradient, x)
-    v = compute_extreme_point(lmo, gradient)
+    v = compute_extreme_point(lmo, gradient; current=fast_dot(gradient, x))
     # if !lazy, phi is maintained as the global dual gap
     phi = max(0, fast_dot(x, gradient) - fast_dot(v, gradient))
     local_gap = zero(phi)
@@ -231,7 +231,7 @@ function blended_pairwise_conditional_gradient_fista(
         local_gap = dot_away_vertex - dot_forward_vertex
         if !lazy
             if t > 1
-                v = compute_extreme_point(lmo, gradient)
+                v = compute_extreme_point(lmo, gradient; current=fast_dot(gradient, x))
                 dual_gap = fast_dot(gradient, x) - fast_dot(gradient, v)
                 phi = dual_gap
             end
@@ -304,13 +304,13 @@ function blended_pairwise_conditional_gradient_fista(
                         v = new_forward_vertex
                         tt = lazylazy
                     else
-                        v = compute_extreme_point(lmo, gradient)
+                        v = compute_extreme_point(lmo, gradient; current=fast_dot(gradient, x)) # could use ActiveSetQuadratic for minor improvement
                         tt = regular
                     end
                 else
                     # for t == 1, v is already computed before first iteration
                     if t > 1
-                        v = compute_extreme_point(lmo, gradient)
+                        v = compute_extreme_point(lmo, gradient; current=fast_dot(gradient, x))
                     end
                     tt = regular
                 end
@@ -395,7 +395,7 @@ function blended_pairwise_conditional_gradient_fista(
                     phi = dual_gap
                     @debug begin
                         @assert tt == regular
-                        v2 = compute_extreme_point(lmo, gradient)
+                        v2 = compute_extreme_point(lmo, gradient; current=fast_dot(gradient, x))
                         g = dot(gradient, x - v2)
                         if abs(g - dual_gap) > 100 * sqrt(eps())
                             error("dual gap estimation error $g $dual_gap")
@@ -450,7 +450,7 @@ function blended_pairwise_conditional_gradient_fista(
         compute_active_set_iterate!(active_set)
         x = get_active_set_iterate(active_set)
         grad!(gradient, x)
-        v = compute_extreme_point(lmo, gradient)
+        v = compute_extreme_point(lmo, gradient; current=fast_dot(gradient, x))
         primal = f(x)
         phi = fast_dot(x, gradient) - fast_dot(v, gradient)
         tt = last
@@ -482,7 +482,7 @@ function blended_pairwise_conditional_gradient_fista(
     grad!(gradient, x)
     # otherwise values are maintained to last iteration
     if recompute_last_vertex
-        v = compute_extreme_point(lmo, gradient)
+        v = compute_extreme_point(lmo, gradient; current=fast_dot(gradient, x))
         primal = f(x)
         dual_gap = fast_dot(x, gradient) - fast_dot(v, gradient)
     end

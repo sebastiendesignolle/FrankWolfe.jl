@@ -271,7 +271,7 @@ struct SymmetricLMO{LMO<:LinearMinimizationOracle,TR,TI} <: LinearMinimizationOr
     reduce::TR
     inflate::TI
     function SymmetricLMO(lmo::LMO, reduce, inflate=(x, lmo) -> x) where {LMO<:LinearMinimizationOracle}
-        return new{typeof(lmo),typeof(reduce),typeof(inflate)}( lmo, reduce, inflate)
+        return new{typeof(lmo),typeof(reduce),typeof(inflate)}(lmo, reduce, inflate)
     end
 end
 
